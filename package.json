@@ -1,0 +1,33 @@
+{
+  "name": "salon",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Salon: search a museum, walk the show it builds, and hang the art on your own wall. A showcase for gad xr-kit.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:lan": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "node --test \"tests/*.test.mjs\""
+  },
+  "dependencies": {
+    "@gadxr/aframe-blink-controls": "workspace:*",
+    "@gadxr/aframe-tap-to-move": "workspace:*",
+    "@gadxr/ui": "workspace:*",
+    "aframe": "^1.8.0",
+    "qrcode-generator": "^2.0.4",
+    "svelte": "^5.57.2"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.0.0",
+    "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^26.6.6",
+    "svelte-check": "^4.4.6",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.9",
+    "vite-plugin-mkcert": "^2.1.0"
+  }
+}
