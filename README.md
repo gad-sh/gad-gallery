@@ -24,8 +24,10 @@ builds a static site. A host has to forward `collection/*` and `art/*` (beside t
 museum (`vercel.json` does it on Vercel; `src/museum.ts` says why).
 
 The build is relative, so it runs at a site's root or under a path. To mount it at
-`gad.sh/museum/`, the gad.sh project forwards `/museum/:path*` here as `/:path*`, and
-redirects `/museum` to `/museum/` (without the closing slash the relative URLs miss).
+`gad.sh/museum/`, the gad.sh project forwards `/museum/:path(.*)` here as `/:path`, and
+redirects `/museum` to `/museum/` (without the closing slash the relative URLs miss). Use
+`:path(.*)`, not `:path*`, in Vercel rewrites: `:path*` never matches a path ending in a slash,
+such as `/museum/` itself or the museum's search, `collection/api/artworks/`.
 
 ## What it shows off
 

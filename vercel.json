@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/collection/:path*", "destination": "https://openaccess-api.clevelandart.org/:path*" },
-    { "source": "/art/:path*", "destination": "https://openaccess-cdn.clevelandart.org/:path*" }
+    { "source": "/collection/:path(.*)", "destination": "https://openaccess-api.clevelandart.org/:path" },
+    { "source": "/art/:path(.*)", "destination": "https://openaccess-cdn.clevelandart.org/:path" }
   ]
 }
