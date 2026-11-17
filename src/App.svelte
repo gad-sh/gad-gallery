@@ -7,6 +7,7 @@
 	import Door from './Door.svelte';
 	import Hanging from './Hanging.svelte';
 	import Qr from './Qr.svelte';
+	import { quickLook, quickLookSupported } from './quicklook';
 	import { layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, nextDoor, throughDoor, tourLeaves, tourStep, turn, type Placement } from './layout';
 	import { MUSEUM, artwork, search, sizeLabel, type Artwork, type Hall } from './museum';
 
@@ -381,10 +382,23 @@
 		if (['localhost', '127.0.0.1'].includes(url.hostname) && __LAN_HOST__) url.hostname = __LAN_HOST__;
 		return url.href;
 	}
-	function hangAtHome() {
+	// An iPhone has no WebXR AR: its own AR viewer (Quick Look) takes the work as a file instead.
+	const quickLookable = quickLookSupported();
+	let preparing = $state(false);
+	async function hangAtHome() {
 		if (xr.presenting) toaster.info('Leave VR, then press AR to hang it in your room');
 		else if (arSupported) scene.enterAR();
-		else {
+		else if (quickLookable && arWork) {
+			if (preparing) return;
+			preparing = true;
+			try {
+				await quickLook(arWork, arWork.title);
+			} catch {
+				toaster.negative("Couldn't open it in AR. Try again");
+			} finally {
+				preparing = false;
+			}
+		} else {
 			handoffUrl = shareUrl();
 			handoff = true;
 		}
@@ -597,7 +611,7 @@
 						{/if}
 					</Stack>
 					<ButtonGroup size="compact" gap={8}>
-						<Button label="Hang on my wall" onclick={hangAtHome} />
+						<Button label={preparing ? 'Preparing…' : 'Hang on my wall'} disabled={preparing} onclick={hangAtHome} />
 						<Button label="Copy link" kind="secondary" onclick={copyLink} />
 					</ButtonGroup>
 				</Panel>

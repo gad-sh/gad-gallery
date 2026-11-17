@@ -20,6 +20,10 @@ test('a record becomes an artwork at its unframed size, with a same-origin pictu
 	assert.equal(work.title, 'The Red Kerchief');
 	assert.equal(work.artist, 'Claude Monet');
 	assert.equal(work.image, '/art/1958.39/1958.39_web.jpg');
+	// No print-size picture: the web one again.
+	assert.equal(work.print, '/art/1958.39/1958.39_web.jpg');
+	const print = normalize(record({ images: { web: { url: 'https://openaccess-cdn.clevelandart.org/1958.39/1958.39_web.jpg', width: '723', height: '900' }, print: { url: 'https://openaccess-cdn.clevelandart.org/1958.39/1958.39_print.jpg', width: '2732', height: '3400' } } }));
+	assert.equal(print.print, '/art/1958.39/1958.39_print.jpg');
 	assert.equal(work.measured, true);
 	// The picture's proportions, inside the measured 0.99 × 0.798 box.
 	assert.ok(Math.abs(work.width / work.height - 723 / 900) < 1e-9);
