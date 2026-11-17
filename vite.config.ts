@@ -4,13 +4,13 @@ import mkcert from 'vite-plugin-mkcert';
 import os from 'node:os';
 
 // The museum's API and pictures are fetched through this origin (src/museum.ts says why):
-// /museum/… and /art/… are proxied by the dev and preview servers here, and by rewrites on
+// /collection/… and /art/… are proxied by the dev and preview servers here, and by rewrites on
 // a host (vercel.json).
 const proxy = {
-  '/museum': {
+  '/collection': {
     target: 'https://openaccess-api.clevelandart.org',
     changeOrigin: true,
-    rewrite: (path: string) => path.replace(/^\/museum/, ''),
+    rewrite: (path: string) => path.replace(/^\/collection/, ''),
   },
   '/art': {
     target: 'https://openaccess-cdn.clevelandart.org',
@@ -30,7 +30,10 @@ const lan = Object.values(os.networkInterfaces())
   .flat()
   .find((address) => address && address.family === 'IPv4' && !address.internal)?.address;
 
+// `base: './'` makes the build's own URLs relative, so the same files work at a site's root
+// and under a path (gad.sh/museum/, which forwards to this project with the path removed).
 export default defineConfig(({ command }) => ({
+  base: './',
   plugins: [svelte(), ...(process.env.SALON_HTTP ? [] : [mkcert()])],
   define: { __LAN_HOST__: JSON.stringify(command === 'serve' ? (lan ?? '') : '') },
   server: { proxy },

@@ -8,5 +8,10 @@ import '@gadxr/aframe-tap-to-move';
 import './picture';
 import { mount } from 'svelte';
 import App from './App.svelte';
+import { setBase } from './museum';
+
+// The build is relative (vite.config.ts, base: './'), so it runs from any folder: tell the
+// museum module which one, for its API and picture paths.
+setBase(new URL('.', document.baseURI).pathname);
 
 export default mount(App, { target: document.getElementById('app')! });
