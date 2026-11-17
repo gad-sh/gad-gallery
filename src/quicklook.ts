@@ -15,8 +15,10 @@ export function quickLookSupported(): boolean {
 const PICTURE = 'picture.jpg';
 const n = (value: number) => String(Math.round(value * 1e5) / 1e5);
 
-// The scene: a panel in the XY plane facing +Z, centered on the origin, in meters. Quick Look
-// puts a vertically anchored model's back (-Z) against the wall.
+// The scene: a panel in meters, laid out in the anchor's frame. On a wall, Quick Look's +Y
+// points out of the wall (and the model's lowest Y sits on it) and +Z runs down the wall. So
+// the panel lies in the XZ plane facing +Y, its top toward -Z: from the room you see it
+// upright, +X to your right.
 export function usda(width: number, height: number): string {
 	const w = n(width / 2);
 	const h = n(height / 2);
@@ -44,9 +46,9 @@ def Xform "Root" (
     {
         int[] faceVertexCounts = [4]
         int[] faceVertexIndices = [0, 1, 2, 3]
-        point3f[] points = [(-${w}, -${h}, 0), (${w}, -${h}, 0), (${w}, ${h}, 0), (-${w}, ${h}, 0)]
-        float3[] extent = [(-${w}, -${h}, 0), (${w}, ${h}, 0)]
-        normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+        point3f[] points = [(-${w}, 0, ${h}), (${w}, 0, ${h}), (${w}, 0, -${h}), (-${w}, 0, -${h})]
+        float3[] extent = [(-${w}, 0, -${h}), (${w}, 0, ${h})]
+        normal3f[] normals = [(0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0)] (
             interpolation = "vertex"
         )
         texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
