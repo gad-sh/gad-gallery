@@ -2,7 +2,7 @@
 	// One work on a wall: the picture at its size in meters, a frame, a pool of light behind
 	// it, and a label. `position` is the picture's center and `rotation` turns its face out.
 	// Used for the gallery, for its reflection in the floor, and for your own wall in AR.
-	import { RAYCASTABLE, Text } from '@gadxr/ui';
+	import { RAYCASTABLE, Text } from '@xr-kit/ui';
 	import type { Artwork } from './museum';
 
 	type Props = {

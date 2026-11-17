@@ -1,7 +1,6 @@
-# The showcase and the kit's packages (a private clone in kit/, see scripts/setup-kit.sh)
-# install as one workspace, so there's a single Svelte and a single A-Frame.
-packages:
-  - .
-  - kit/packages/*
 # A-Frame 1.8 installs one of its own dependencies (three-bmfont-text) from git.
 blockExoticSubdeps: false
+minimumReleaseAgeExclude:
+  - '@xr-kit/aframe-blink-controls@0.1.0'
+  - '@xr-kit/aframe-tap-to-move@0.1.0'
+  - '@xr-kit/ui@0.1.0'

@@ -3,7 +3,7 @@
 	// light spilling through it along the floor, a lit frame, and the hall's number over it.
 	// `position` is the middle of its threshold, on the wall; `rotation` turns it into the room.
 	// Walking (or teleporting) into it goes through; so does clicking or tapping it.
-	import { RAYCASTABLE, Text } from '@gadxr/ui';
+	import { RAYCASTABLE, Text } from '@xr-kit/ui';
 	import { DOOR } from './layout';
 
 	type Props = {

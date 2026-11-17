@@ -3,7 +3,7 @@
 	// work at its real size. Walk it on a phone (tap the floor), a desktop, or in a headset
 	// (teleport). Then press AR and hang the same works on your own wall, at true size.
 	// One page: the panels are HTML on a screen and 3D in a headset (the kit's Surface).
-	import { Button, ButtonGroup, Checkbox, Input, Keyboard, Modal, Panel, ProgressBar, RadialMenu, Scene3D, Stack, Surface, Tag, Text, ThemeProvider, Toaster, createTheme, everyFrame, toaster, xr } from '@gadxr/ui';
+	import { Button, ButtonGroup, Checkbox, Input, Keyboard, Modal, Panel, ProgressBar, RadialMenu, Scene3D, Stack, Surface, Tag, Text, ThemeProvider, Toaster, createTheme, everyFrame, toaster, xr } from '@xr-kit/ui';
 	import Door from './Door.svelte';
 	import Hanging from './Hanging.svelte';
 	import Qr from './Qr.svelte';

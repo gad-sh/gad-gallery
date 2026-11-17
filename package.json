@@ -14,9 +14,9 @@
     "test": "node --test \"tests/*.test.mjs\""
   },
   "dependencies": {
-    "@gadxr/aframe-blink-controls": "workspace:*",
-    "@gadxr/aframe-tap-to-move": "workspace:*",
-    "@gadxr/ui": "workspace:*",
+    "@xr-kit/aframe-blink-controls": "^0.1.0",
+    "@xr-kit/aframe-tap-to-move": "^0.1.0",
+    "@xr-kit/ui": "^0.1.0",
     "aframe": "^1.8.0",
     "qrcode-generator": "^2.0.4",
     "svelte": "^5.57.2"
