@@ -166,17 +166,24 @@ export function tourStep(count: number, from: number | null, by: number): number
 	return order[(((at + by) % count) + count) % count];
 }
 
-// The doors between halls: in the middle of the far wall to the next hall, and of the wall
-// behind where you start back to the one before. `reach` is how close to the wall counts as
-// walking through.
-export const DOOR = { width: 1.5, height: 2.3, reach: 0.9 };
+// The doors between halls. The one on to the next hall is in the right-hand wall near the far
+// end, so it's found at the end of the walk rather than staring at you from the entrance; the
+// one back is in the middle of the wall behind where you start. `fromEnd` is how far the next
+// door's middle is from the far wall (the hall leaves ROOM.tail free there), and `reach` how
+// close to a door's wall counts as walking through.
+export const DOOR = { width: 1.5, height: 2.3, reach: 0.9, fromEnd: 1.5 };
 
-// Whether someone standing at (x, z) is going through a door: 1 the far one, -1 the one
+// The middle of the next door's threshold, on the right-hand wall.
+export function nextDoor(room: Pick<Room, 'width' | 'length'>, door = DOOR): { x: number; z: number } {
+	return { x: room.width / 2, z: -room.length + door.fromEnd };
+}
+
+// Whether someone standing at (x, z) is going through a door: 1 the next one, -1 the one
 // behind, 0 neither. A door only counts if it's there (`next`, `previous`).
-export function throughDoor(room: Pick<Room, 'length' | 'back'>, x: number, z: number, doors: { next: boolean; previous: boolean }, door = DOOR): 1 | -1 | 0 {
-	if (Math.abs(x) > door.width / 2) return 0;
-	if (doors.next && z < -room.length + door.reach) return 1;
-	if (doors.previous && z > room.back - door.reach) return -1;
+export function throughDoor(room: Pick<Room, 'width' | 'length' | 'back'>, x: number, z: number, doors: { next: boolean; previous: boolean }, door = DOOR): 1 | -1 | 0 {
+	const next = nextDoor(room, door);
+	if (doors.next && x > next.x - door.reach && Math.abs(z - next.z) < door.width / 2) return 1;
+	if (doors.previous && Math.abs(x) < door.width / 2 && z > room.back - door.reach) return -1;
 	return 0;
 }
 

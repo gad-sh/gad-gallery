@@ -48,8 +48,9 @@ device, which is what the QR code carries.
 
 A long show runs on through doors. Each hall hangs 14 works from its own fixed slice of the
 search (hall 3 is always results 85 to 126), and the museum returns a search in the same
-order every time, so `&hall=3` is a stable link too. Walk, teleport or click into the door at
-the far end and the view fades to the next hall; the door behind you goes back. The halls
+order every time, so `&hall=3` is a stable link too. Walk, teleport or click into the door in
+the right-hand wall at the far end (out of sight from the entrance, so the show comes first)
+and the view fades to the next hall; the door behind you goes back. The halls
 either side are fetched ahead, so the fade is only a blink. The arrow keys and the tour carry
 on into the next hall at the end of one. If the museum adds works and a linked work drifts
 out of its hall, it is fetched by id and hung there anyway.
@@ -59,7 +60,7 @@ out of its hall, it is fetched by id and hung there anyway.
 1. **Desktop.** Load the page: the Monet hall pops in, reflected in the floor. Click the
    floor to walk, click the Water Lilies (4.3 m wide, true size).
 2. Type `hokusai` (or hold **E** and flick to it): the hall rebuilds. Turn on **Tour**.
-   Search `flowers` (43 halls) and walk through the door at the far end: a blink, and the
+   Search `flowers` (43 halls) and walk through the door on the right at the far end: a blink, and the
    next hall builds around you.
 3. Press **V**: the HTML panels become 3D panels in place. Press V again.
 4. Click a work, then **Hang on my wall**: a QR code. Scan it with a phone.

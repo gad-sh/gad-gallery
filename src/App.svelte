@@ -7,7 +7,7 @@
 	import Door from './Door.svelte';
 	import Hanging from './Hanging.svelte';
 	import Qr from './Qr.svelte';
-	import { layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, throughDoor, tourLeaves, tourStep, turn, type Placement } from './layout';
+	import { layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, nextDoor, throughDoor, tourLeaves, tourStep, turn, type Placement } from './layout';
 	import { MUSEUM, artwork, search, sizeLabel, type Artwork, type Hall } from './museum';
 
 	/* eslint-disable @typescript-eslint/no-explicit-any */
@@ -104,8 +104,10 @@
 			for (const near of [hall + 1, hall - 1]) if (near >= 1 && near <= halls) fetchHall(q, near).catch(() => {});
 			show++;
 			selected = null;
-			// `room` is already this hall's: its far door is room.length away.
-			const arrival = options.arrive === 'end' ? { x: 0, z: -room.length + DOOR_STEP, yaw: Math.PI, pitch: 0 } : START;
+			// `room` is already this hall's. Back through a door: beside this hall's next door,
+			// looking back down the hall.
+			const door = nextDoor(room);
+			const arrival = options.arrive === 'end' ? { x: door.x - DOOR_STEP, z: door.z, yaw: Math.PI, pitch: 0 } : START;
 			moveCamera(arrival, options.instant || fading);
 			lastDoor = 0;
 			const index = list.findIndex((work) => work.id === options.art);
@@ -455,14 +457,14 @@
 
 			{#key show}
 				<!-- The show's name on the far wall, in the kit's Text. -->
-				<!-- With a door under it, it goes up the wall out of the door's way. -->
-				<a-entity position="0 {hall < halls ? 3.55 : 2.7} {-room.length + 0.03}">
+				<a-entity position="0 2.7 {-room.length + 0.03}">
 					<a-entity scale="{titleSize} {titleSize} {titleSize}"><Text variant="HeadingMedium" text={query.toUpperCase()} /></a-entity>
-					<a-entity position="0 {hall < halls ? -titleSize * 0.045 - 0.16 : -titleSize * 0.085 - 0.2} 0" scale="2 2 2"><Text variant="LabelMedium" color="#8d93a0" text={subtitle} /></a-entity>
+					<a-entity position="0 {-titleSize * 0.085 - 0.2} 0" scale="2 2 2"><Text variant="LabelMedium" color="#8d93a0" text={subtitle} /></a-entity>
 				</a-entity>
-				<!-- Doors on to the rest of the show: ahead to the next hall, behind you to the last. -->
+				<!-- Doors on to the rest of the show: on the right at the far end to the next hall, -->
+				<!-- behind you to the last. -->
 				{#if hall < halls}
-					<Door position="0 0 {-room.length}" label="Hall {hall + 1}" detail="of {halls}" onclick={() => goHall(1, { arrive: 'start' })} />
+					<Door position="{room.width / 2} 0 {nextDoor(room).z}" rotation="0 -90 0" label="Hall {hall + 1}" detail="of {halls}" onclick={() => goHall(1, { arrive: 'start' })} />
 				{/if}
 				{#if hall > 1}
 					<Door position="0 0 {room.back}" rotation="0 180 0" label="Hall {hall - 1}" detail="back" onclick={() => goHall(-1, { arrive: 'end' })} />
@@ -481,7 +483,7 @@
 					/>
 				{/each}
 				<a-entity scale="1 -1 1">
-					{#if hall < halls}<Door position="0 0 {-room.length}" reflection />{/if}
+					{#if hall < halls}<Door position="{room.width / 2} 0 {nextDoor(room).z}" rotation="0 -90 0" reflection />{/if}
 					{#if hall > 1}<Door position="0 0 {room.back}" rotation="0 180 0" reflection />{/if}
 					{#each room.hangs as hang, index (works[index].id)}
 						<Hanging work={works[index]} width={hang.width} height={hang.height} position="{hang.x} {hang.y} {hang.z}" rotation="0 {hang.yaw} 0" note={sizeNote(works[index].measured, hang.scale)} delay={250 + index * 110} reflection />
