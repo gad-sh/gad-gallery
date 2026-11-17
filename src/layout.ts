@@ -165,3 +165,28 @@ export function tourStep(count: number, from: number | null, by: number): number
 	if (at < 0) return order[by > 0 ? 0 : count - 1];
 	return order[(((at + by) % count) + count) % count];
 }
+
+// The doors between halls: in the middle of the far wall to the next hall, and of the wall
+// behind where you start back to the one before. `reach` is how close to the wall counts as
+// walking through.
+export const DOOR = { width: 1.5, height: 2.3, reach: 0.9 };
+
+// Whether someone standing at (x, z) is going through a door: 1 the far one, -1 the one
+// behind, 0 neither. A door only counts if it's there (`next`, `previous`).
+export function throughDoor(room: Pick<Room, 'length' | 'back'>, x: number, z: number, doors: { next: boolean; previous: boolean }, door = DOOR): 1 | -1 | 0 {
+	if (Math.abs(x) > door.width / 2) return 0;
+	if (doors.next && z < -room.length + door.reach) return 1;
+	if (doors.previous && z > room.back - door.reach) return -1;
+	return 0;
+}
+
+// Whether a step of `by` from `from` runs off the end of the tour (1) or its start (-1),
+// where it carries on into the next or previous hall instead of wrapping round. 0 otherwise.
+export function tourLeaves(count: number, from: number | null, by: number): 1 | -1 | 0 {
+	if (!count || from === null) return 0;
+	const at = tourOrder(count).indexOf(from);
+	if (at < 0) return 0;
+	if (by > 0 && at + by >= count) return 1;
+	if (by < 0 && at + by < 0) return -1;
+	return 0;
+}

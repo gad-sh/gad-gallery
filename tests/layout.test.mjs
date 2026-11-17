@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ROOM, layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, surfaceNormal, tourOrder, tourStep, turn, viewDistance } from '../src/layout.ts';
+import { ROOM, layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, surfaceNormal, throughDoor, tourLeaves, tourOrder, tourStep, turn, viewDistance } from '../src/layout.ts';
 
 const near = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
 
@@ -128,4 +128,30 @@ test('stepping follows the tour, both ways, and wraps', () => {
 	assert.equal(tourStep(7, 0, -1), 1);
 	assert.equal(tourStep(7, 5, -1), 6);
 	assert.equal(tourStep(0, null, 1), null);
+});
+
+test('walking into a door goes through it, but only a door that is there', () => {
+	const room = { length: 20, back: 4 };
+	const both = { next: true, previous: true };
+	assert.equal(throughDoor(room, 0, -19.5, both), 1);
+	assert.equal(throughDoor(room, 0.2, 3.5, both), -1);
+	// Beside the door, or still in the hall.
+	assert.equal(throughDoor(room, 1.5, -19.5, both), 0);
+	assert.equal(throughDoor(room, 0, -17, both), 0);
+	// Where you start is well clear of the door behind you.
+	assert.equal(throughDoor(room, 0, 1.6, both), 0);
+	// The first hall has no door back; the last none on.
+	assert.equal(throughDoor(room, 0, 3.5, { next: true, previous: false }), 0);
+	assert.equal(throughDoor(room, 0, -19.5, { next: false, previous: true }), 0);
+});
+
+test('the tour runs off its ends into the next and previous halls', () => {
+	const order = tourOrder(5); // [0, 2, 4, 3, 1]
+	assert.equal(tourLeaves(5, order.at(-1), 1), 1);
+	assert.equal(tourLeaves(5, order[0], -1), -1);
+	assert.equal(tourLeaves(5, order[2], 1), 0);
+	assert.equal(tourLeaves(5, order[2], -1), 0);
+	// Not on the tour yet: it starts in this hall.
+	assert.equal(tourLeaves(5, null, 1), 0);
+	assert.equal(tourLeaves(0, null, 1), 0);
 });
