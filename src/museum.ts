@@ -118,17 +118,41 @@ export function pick(records: any[], limit: number): Artwork[] {
 	return [0, 1, 2].flatMap((group) => works.filter((work) => rank(work) === group)).slice(0, limit);
 }
 
-export function searchUrl(query: string, limit: number): string {
+// A show is split into halls, each hung from its own fixed slice of the search results: hall
+// 1 from the first PAGE records, hall 2 from the next, and so on. The museum returns a search
+// in the same order every time, so hall 3 of "flowers" is always the same works (and a link
+// to it opens the same hall), without fetching the halls before it.
+export const PER_HALL = 14;
+// Records looked at per hall: more than are hung, as some have no usable picture.
+export const PAGE = PER_HALL * 3;
+
+export function searchUrl(query: string, limit: number, skip = 0): string {
 	const params = new URLSearchParams({ q: query, has_image: '1', cc0: '1', limit: String(limit) });
+	if (skip) params.set('skip', String(skip));
 	return `${apiBase()}/api/artworks/?${params}`;
 }
 
-export async function search(query: string, limit = 14, signal?: AbortSignal): Promise<Artwork[]> {
-	// Ask for more than we hang: some records have no usable picture.
-	const response = await fetch(searchUrl(query, limit * 3), { signal });
+// How many halls a search fills, from the number of records it matches.
+export function hallCount(total: number): number {
+	return Math.max(1, Math.ceil(total / PAGE));
+}
+
+export type Hall = { works: Artwork[]; hall: number; halls: number };
+
+// One hall of a show (`hall` counts from 1).
+export async function search(query: string, hall = 1, signal?: AbortSignal): Promise<Hall> {
+	const response = await fetch(searchUrl(query, PAGE, (hall - 1) * PAGE), { signal });
 	if (!response.ok) throw new Error(`The museum answered ${response.status}`);
 	const body = await response.json();
-	return pick(body.data ?? [], limit);
+	return { works: pick(body.data ?? [], PER_HALL), hall, halls: hallCount(Number(body.info?.total) || 0) };
+}
+
+// One work by its id, or null: for a link to a work its hall no longer has (the museum adds
+// works, and the slices shift a little).
+export async function artwork(id: number, signal?: AbortSignal): Promise<Artwork | null> {
+	const response = await fetch(`${apiBase()}/api/artworks/${id}`, { signal });
+	if (!response.ok) return null;
+	return normalize((await response.json()).data);
 }
 
 // The museum's measurement of a work: "99 × 79.8 cm", "70.2 cm long", "Size unknown".

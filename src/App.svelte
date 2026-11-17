@@ -4,10 +4,11 @@
 	// (teleport). Then press AR and hang the same works on your own wall, at true size.
 	// One page: the panels are HTML on a screen and 3D in a headset (the kit's Surface).
 	import { Button, ButtonGroup, Checkbox, Input, Keyboard, Modal, Panel, ProgressBar, RadialMenu, Scene3D, Stack, Surface, Tag, Text, ThemeProvider, Toaster, createTheme, everyFrame, toaster, xr } from '@gadxr/ui';
+	import Door from './Door.svelte';
 	import Hanging from './Hanging.svelte';
 	import Qr from './Qr.svelte';
-	import { layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, tourStep, turn, type Placement } from './layout';
-	import { MUSEUM, search, sizeLabel, type Artwork } from './museum';
+	import { layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, nextDoor, throughDoor, tourLeaves, tourStep, turn, type Placement } from './layout';
+	import { MUSEUM, artwork, search, sizeLabel, type Artwork, type Hall } from './museum';
 
 	/* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -17,10 +18,13 @@
 
 	// ——— The show: a search, its works, and which one you're looking at. The URL holds it
 	// (?q=monet&art=135382), so a link, or the QR code, opens the same work on another device.
+	// A long show runs on through doors into more halls (&hall=3), each always the same works.
 	const params = new URLSearchParams(location.search);
 	let query = $state('');
 	let draft = $state('');
 	let works = $state.raw<Artwork[]>([]);
+	let hall = $state(1);
+	let halls = $state(1);
 	// Counts the shows, to rebuild the hall (and replay the works popping in) for each.
 	let show = $state(0);
 	let loading = $state(false);
@@ -30,6 +34,7 @@
 	const room = $derived(layoutGallery(works));
 	// The show's name on the far wall: as big as fits the wall.
 	const titleSize = $derived(Math.min(8, 76 / Math.max(6, query.length)));
+	const subtitle = $derived(halls > 1 ? `Hall ${hall} of ${halls} · ${works.length} works from ${MUSEUM}, at true size` : `${works.length} works from ${MUSEUM}, at true size`);
 	const current = $derived(selected === null ? null : (works[selected] ?? null));
 	// The details panel keeps showing the last work while it slides away.
 	let detail = $state.raw<Artwork | null>(null);
@@ -39,45 +44,105 @@
 	const detailHang = $derived(detail ? room.hangs[works.indexOf(detail)] : undefined);
 	const detailNote = $derived(detail ? sizeNote(detail.measured, detailHang?.scale ?? 1) : '');
 
+	type Open = {
+		// A work to walk up to once the hall is built, or the first (1) or last (-1) on the tour.
+		art?: number;
+		pick?: 1 | -1;
+		hall?: number;
+		push?: boolean;
+		instant?: boolean;
+		// Going between halls: fade out, and come in at the door you went through (`end`: at
+		// the far door, as through the one behind you), and fade back in.
+		fade?: boolean;
+		arrive?: 'start' | 'end';
+	};
+	// Halls of the current show, by number: the ones either side of where you are are fetched
+	// ahead, so going through a door doesn't wait on the museum.
+	let fetched = { query: '', halls: new Map<number, Promise<Hall>>() };
+	function fetchHall(q: string, number: number): Promise<Hall> {
+		if (fetched.query !== q.toLowerCase()) fetched = { query: q.toLowerCase(), halls: new Map() };
+		const { halls: cache } = fetched;
+		let found = cache.get(number);
+		if (!found) {
+			found = search(q, number);
+			cache.set(number, found);
+			found.catch(() => cache.delete(number));
+		}
+		return found;
+	}
+
 	let request: AbortController | undefined;
-	async function open(text: string, options: { art?: number; push?: boolean; instant?: boolean } = {}) {
+	async function open(text: string, options: Open = {}) {
 		const q = text.trim();
 		if (!q) return;
 		request?.abort();
 		const mine = (request = new AbortController());
+		const number = Math.max(1, Math.floor(options.hall || 1));
+		const fading = !!options.fade && !ar;
 		loading = true;
 		try {
-			const found = await search(q, 14, mine.signal);
-			if (!found.length) {
-				toaster.warning(`Nothing in the collection for “${q}”`);
+			// The fade out runs while the museum answers.
+			const [found] = await Promise.all([fetchHall(q, number), fading ? fadeTo(1) : undefined]);
+			if (mine !== request) return;
+			let list = found.works;
+			// A link to a work this hall doesn't have (any more): it hangs here as well.
+			if (options.art && !list.some((work) => work.id === options.art)) {
+				const linked = await artwork(options.art, mine.signal).catch(() => null);
+				if (linked) list = [...list, linked];
+			}
+			if (mine !== request) return;
+			if (!list.length) {
+				// A link to a hall past the end (the show has shrunk): its first hall instead.
+				if (number > 1 && !works.length) return void open(q, { ...options, hall: 1 });
+				toaster.warning(number > 1 ? 'That’s the end of this show' : `Nothing in the collection for “${q}”`);
 				return;
 			}
 			query = draft = q;
-			works = found;
+			works = list;
+			hall = found.hall;
+			halls = found.halls;
+			for (const near of [hall + 1, hall - 1]) if (near >= 1 && near <= halls) fetchHall(q, near).catch(() => {});
 			show++;
 			selected = null;
-			moveCamera(START, options.instant);
-			const index = found.findIndex((work) => work.id === options.art);
-			// Let the hall build before walking up to the linked work.
-			if (index >= 0) setTimeout(() => mine === request && select(index), 900);
-			else syncUrl(options.push ?? true);
+			// `room` is already this hall's. Back through a door: beside this hall's next door,
+			// looking back down the hall.
+			const door = nextDoor(room);
+			const arrival = options.arrive === 'end' ? { x: door.x - DOOR_STEP, z: door.z, yaw: Math.PI, pitch: 0 } : START;
+			moveCamera(arrival, options.instant || fading);
+			lastDoor = 0;
+			const index = list.findIndex((work) => work.id === options.art);
+			const target = index >= 0 ? index : options.pick ? tourStep(list.length, null, options.pick) : null;
+			if (options.push ?? true) syncUrl(true);
+			else if (target === null) syncUrl();
+			// Let the hall build before walking up to the work.
+			if (target !== null) setTimeout(() => mine === request && select(target), 900);
 		} catch (error) {
 			if ((error as Error).name !== 'AbortError') toaster.negative('Couldn’t reach the museum. Check your connection.');
 		} finally {
 			if (mine === request) loading = false;
+			if (fading && mine === request) fadeTo(0);
 		}
+	}
+
+	// Through a door, or a step off the end of the tour: the next hall (1) or the one before (-1).
+	function goHall(by: 1 | -1, options: Open = {}) {
+		const to = hall + by;
+		if (loading || to < 1 || to > halls) return;
+		open(query, { hall: to, fade: true, ...options });
 	}
 
 	function syncUrl(push = false) {
 		const url = new URL(location.href);
 		url.searchParams.set('q', query);
+		if (hall > 1) url.searchParams.set('hall', String(hall));
+		else url.searchParams.delete('hall');
 		if (current) url.searchParams.set('art', String(current.id));
 		else url.searchParams.delete('art');
 		if (url.href !== location.href) history[push ? 'pushState' : 'replaceState'](null, '', url);
 	}
 	function onpopstate() {
 		const now = new URLSearchParams(location.search);
-		open(now.get('q') ?? SHOWS[0], { art: Number(now.get('art')), push: false });
+		open(now.get('q') ?? SHOWS[0], { art: Number(now.get('art')), hall: Number(now.get('hall')), push: false });
 	}
 
 	// Pick a work (or none). On a screen you walk up to it. In VR you jump there if it's far.
@@ -96,6 +161,11 @@
 		moveCamera({ x, z: hang.view.z, yaw: (hang.view.yaw * Math.PI) / 180, pitch: Math.atan2(hang.y - eye, distance) - (narrow ? 0.13 : 0) });
 	}
 	function step(by: number) {
+		if (loading) return;
+		// Off the end of the tour: on into the next hall (or back to the last work of the one
+		// before). Through a fade, starting from the entrance. In AR it just goes round.
+		const leaves = ar ? 0 : tourLeaves(works.length, selected, by);
+		if (leaves && hall + leaves >= 1 && hall + leaves <= halls) return goHall(leaves, { pick: leaves });
 		// Along one wall and back along the other, so you don't turn round for every work.
 		const next = tourStep(works.length, selected, by);
 		if (next === null) return;
@@ -156,6 +226,8 @@
 	$effect(() => {
 		if (!scene) return;
 		return everyFrame(scene, () => {
+			stepFade();
+			watchDoors();
 			if (!glide) return;
 			const t = Math.min(1, (performance.now() - glide.start) / glide.duration);
 			const k = t * t * (3 - 2 * t);
@@ -165,6 +237,54 @@
 			if (t >= 1) glide = null;
 		});
 	});
+
+	// ——— Going between halls. A dark sphere round the camera fades in and out: in the scene,
+	// so it covers a headset's view as well as a screen's (the HTML panels stay above it).
+	let veil = $state<any>();
+	let veiled = 0;
+	let fade: { from: number; to: number; start: number; duration: number; done: () => void } | null = null;
+	function setVeil(opacity: number) {
+		veiled = opacity;
+		const mesh = veil?.getObject3D('mesh');
+		if (!mesh) return;
+		mesh.material.opacity = opacity;
+		// Drawn last, over everything, whatever is nearer.
+		mesh.renderOrder = 10000;
+		veil.object3D.visible = opacity > 0.001;
+	}
+	function fadeTo(to: number, duration = 380): Promise<void> {
+		fade?.done();
+		return new Promise((resolve) => {
+			const done = () => {
+				if (fade?.done !== done) return;
+				setVeil(to);
+				fade = null;
+				resolve();
+			};
+			fade = { from: veiled, to, start: performance.now(), duration, done };
+			// Frames stop in a hidden tab: don't wait on them for ever.
+			setTimeout(done, duration + 250);
+		});
+	}
+	function stepFade() {
+		if (!fade) return;
+		const t = Math.min(1, (performance.now() - fade.start) / fade.duration);
+		setVeil(fade.from + (fade.to - fade.from) * t);
+		if (t >= 1) fade.done();
+	}
+
+	// Walking (or teleporting) into a door goes through it. Only on the way in: standing in a
+	// doorway after a failed trip doesn't try again every frame.
+	const DOOR_STEP = 2;
+	let lastDoor = 0;
+	const at = new THREE.Vector3();
+	function watchDoors() {
+		if (ar || !works.length || !camera) return;
+		camera.object3D.getWorldPosition(at);
+		const way = throughDoor(room, at.x, at.z, { next: hall < halls, previous: hall > 1 });
+		if (way && way !== lastDoor && !loading) goHall(way, { arrive: way > 0 ? 'start' : 'end' });
+		lastDoor = way;
+	}
 	// Walking off yourself (tapping the floor, dragging the view) ends a glide, and the tour.
 	const takeOver = () => {
 		glide = null;
@@ -176,7 +296,7 @@
 	$effect(() => {
 		if (!camera || started) return;
 		started = true;
-		const begin = () => open(params.get('q') ?? SHOWS[0], { art: Number(params.get('art')), push: false, instant: true });
+		const begin = () => open(params.get('q') ?? SHOWS[0], { art: Number(params.get('art')), hall: Number(params.get('hall')), push: false, instant: true });
 		if (camera.hasLoaded) begin();
 		else camera.addEventListener('loaded', begin, { once: true });
 	});
@@ -277,7 +397,7 @@
 	let innerWidth = $state(1024);
 	const narrow = $derived(innerWidth < 720);
 	const short = (text: string, max: number) => (text.length > max ? text.slice(0, max - 1).trimEnd() + '…' : text);
-	const status = $derived(loading ? 'Asking the museum…' : works.length ? `${works.length} works · ${MUSEUM} · CC0` : ' ');
+	const status = $derived(loading ? 'Asking the museum…' : works.length ? `${halls > 1 ? `Hall ${hall} of ${halls} · ` : ''}${works.length} works · ${MUSEUM} · CC0` : ' ');
 	const help = $derived(
 		xr.presenting
 			? 'Left stick teleports · trigger picks a work · hold the right grip for another show'
@@ -339,8 +459,16 @@
 				<!-- The show's name on the far wall, in the kit's Text. -->
 				<a-entity position="0 2.7 {-room.length + 0.03}">
 					<a-entity scale="{titleSize} {titleSize} {titleSize}"><Text variant="HeadingMedium" text={query.toUpperCase()} /></a-entity>
-					<a-entity position="0 {-titleSize * 0.085 - 0.2} 0" scale="2 2 2"><Text variant="LabelMedium" color="#8d93a0" text="{works.length} works from {MUSEUM}, at true size" /></a-entity>
+					<a-entity position="0 {-titleSize * 0.085 - 0.2} 0" scale="2 2 2"><Text variant="LabelMedium" color="#8d93a0" text={subtitle} /></a-entity>
 				</a-entity>
+				<!-- Doors on to the rest of the show: on the right at the far end to the next hall, -->
+				<!-- behind you to the last. -->
+				{#if hall < halls}
+					<Door position="{room.width / 2} 0 {nextDoor(room).z}" rotation="0 -90 0" label="Hall {hall + 1}" detail="of {halls}" onclick={() => goHall(1, { arrive: 'start' })} />
+				{/if}
+				{#if hall > 1}
+					<Door position="0 0 {room.back}" rotation="0 180 0" label="Hall {hall - 1}" detail="back" onclick={() => goHall(-1, { arrive: 'end' })} />
+				{/if}
 				{#each room.hangs as hang, index (works[index].id)}
 					<Hanging
 						work={works[index]}
@@ -355,6 +483,8 @@
 					/>
 				{/each}
 				<a-entity scale="1 -1 1">
+					{#if hall < halls}<Door position="{room.width / 2} 0 {nextDoor(room).z}" rotation="0 -90 0" reflection />{/if}
+					{#if hall > 1}<Door position="0 0 {room.back}" rotation="0 180 0" reflection />{/if}
 					{#each room.hangs as hang, index (works[index].id)}
 						<Hanging work={works[index]} width={hang.width} height={hang.height} position="{hang.x} {hang.y} {hang.z}" rotation="0 {hang.yaw} 0" note={sizeNote(works[index].measured, hang.scale)} delay={250 + index * 110} reflection />
 					{/each}
@@ -378,7 +508,10 @@
 
 		<!-- The rig moves you: tap or click the floor to walk there (tap-to-move), on a screen. -->
 		<a-entity bind:this={rig} id="rig" position="{START.x} 0 {START.z}" tap-to-move="collisionEntities: .floor; enabled: {!xr.presenting}" ontapmove={takeOver}>
-			<a-entity bind:this={camera} id="camera" camera="near: 0.05; far: 400" look-controls="magicWindowTrackingEnabled: false" wasd-controls="acceleration: 30" position="0 1.6 0"></a-entity>
+			<a-entity bind:this={camera} id="camera" camera="near: 0.05; far: 400" look-controls="magicWindowTrackingEnabled: false" wasd-controls="acceleration: 30" position="0 1.6 0">
+				<!-- The fade between halls. -->
+				<a-entity bind:this={veil} geometry="primitive: sphere; radius: 0.2; segmentsWidth: 12; segmentsHeight: 8" material="shader: flat; color: #0a0b0e; side: back; transparent: true; opacity: 0; depthTest: false; depthWrite: false; fog: false" visible="false"></a-entity>
+			</a-entity>
 			<!-- In a headset: lasers click, the left stick teleports (not in AR: your room stays put). -->
 			<a-entity
 				bind:this={leftHand}

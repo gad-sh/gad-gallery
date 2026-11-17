@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalize, pick, searchUrl, setBase, sizeLabel } from '../src/museum.ts';
+import { PAGE, PER_HALL, hallCount, normalize, pick, searchUrl, setBase, sizeLabel } from '../src/museum.ts';
 
 const record = (over = {}) => ({
 	id: 1,
@@ -100,4 +100,21 @@ test('served from a folder, the museum paths are in that folder', () => {
 		setBase('/');
 	}
 	assert.equal(normalize(record()).image, '/art/1958.39/1958.39_web.jpg');
+});
+
+test('each hall is its own fixed slice of the search', () => {
+	setBase('/');
+	const url = (hall) => new URL(searchUrl('flowers', PAGE, (hall - 1) * PAGE), 'https://gad.sh');
+	assert.equal(url(1).searchParams.get('skip'), null);
+	assert.equal(url(3).searchParams.get('skip'), String(2 * PAGE));
+	assert.equal(url(3).searchParams.get('limit'), String(PAGE));
+	assert.equal(PAGE, PER_HALL * 3);
+});
+
+test('a show has as many halls as its results fill', () => {
+	assert.equal(hallCount(0), 1);
+	assert.equal(hallCount(18), 1);
+	assert.equal(hallCount(PAGE), 1);
+	assert.equal(hallCount(PAGE + 1), 2);
+	assert.equal(hallCount(1799), 43);
 });
