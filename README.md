@@ -15,9 +15,9 @@ pnpm dev        # https://localhost:5173
 pnpm dev:lan    # the same, reachable from a phone or a headset on your network
 ```
 
-The kit lives in `kit/` (not committed): a clone of xr-kit's `main`, until the packages it
-needs are on npm. `scripts/setup-kit.sh` makes it again from GitHub. A phone or headset will warn
-about the dev certificate once; accept it.
+The kit comes from npm: `@xr-kit/ui`, `@xr-kit/aframe-tap-to-move` and
+`@xr-kit/aframe-blink-controls`. A phone or headset will warn about the dev certificate once;
+accept it.
 
 `pnpm test` runs the layout and museum-data tests, `pnpm check` type-checks, `pnpm build`
 builds a static site. A host has to forward `collection/*` and `art/*` (beside the page) to the
@@ -33,8 +33,8 @@ redirects `/museum` to `/museum/` (without the closing slash the relative URLs m
 | --- | --- |
 | Search panel and work details are HTML on a screen, 3D panels in a headset | `Surface` (`screen` / `vr="hand"` / `vr="follow"`), `Panel`, `Input`, `Button`, `Tag`, `Checkbox`, `Stack` |
 | Typing a search in VR | 3D `Input` + `Keyboard` |
-| Tap or click the floor to walk | `@gadxr/aframe-tap-to-move` |
-| Teleport in VR | `@gadxr/aframe-blink-controls` |
+| Tap or click the floor to walk | `@xr-kit/aframe-tap-to-move` |
+| Teleport in VR | `@xr-kit/aframe-blink-controls` |
 | Hold E / the right grip to swap the whole show | `RadialMenu`, both ways |
 | Hang a work on a real wall | A-Frame `ar-hit-test`, following the AR template PR (#7) |
 | Camera glides, the fade between halls, and walking through doors, in a headset too | `everyFrame` |
