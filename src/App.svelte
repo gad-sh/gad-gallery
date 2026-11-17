@@ -374,6 +374,8 @@
 
 	// ——— Taking it home: AR here if this device can, or a QR code for one that can.
 	let handoff = $state(false);
+	// The link in the QR code, taken when it opens: the dialog's contents render once, at load.
+	let handoffUrl = $state('');
 	function shareUrl() {
 		const url = new URL(location.href);
 		// From the dev machine, a link another device can open (see vite.config.ts).
@@ -396,7 +398,10 @@
 			} finally {
 				preparing = false;
 			}
-		} else handoff = true;
+		} else {
+			handoffUrl = shareUrl();
+			handoff = true;
+		}
 	}
 	async function copyLink() {
 		try {
@@ -410,6 +415,8 @@
 	// ——— Screen layout and keys.
 	let innerWidth = $state(1024);
 	const narrow = $derived(innerWidth < 720);
+	// The Salon panel folds to its title bar; on a phone it starts folded, out of the view.
+	let folded = $state(window.innerWidth < 720);
 	const short = (text: string, max: number) => (text.length > max ? text.slice(0, max - 1).trimEnd() + '…' : text);
 	const status = $derived(loading ? 'Asking the museum…' : works.length ? `${halls > 1 ? `Hall ${hall} of ${halls} · ` : ''}${works.length} works · ${MUSEUM} · CC0` : ' ');
 	const help = $derived(
@@ -557,23 +564,30 @@
 				</Panel>
 			{:else}
 				<Panel title="Salon" width={328} padding={16} gap={12}>
-					<!-- A native field on a screen; in a headset a 3D field, typed with the kit's <Keyboard>. -->
-					<Input placeholder="Search the collection" enterkeyhint="search" maxLength={40} width={296} bind:value={draft} onsubmit={(value) => void open(value)} />
-					<ButtonGroup size="compact" kind="secondary" gap={8}>
-						{#each SHOWS as name (name)}
-							<Button label={name} isSelected={query.toLowerCase() === name.toLowerCase()} onclick={() => open(name)} />
-						{/each}
-					</ButtonGroup>
-					{#if loading}
-						<ProgressBar infinite size="small" width={296} />
+					{#snippet action()}
+						<Button label={folded ? '+' : '−'} kind="tertiary" size="mini" shape="round" aria-label={folded ? 'Show search' : 'Hide search'} aria-expanded={!folded} onclick={() => (folded = !folded)} />
+					{/snippet}
+					{#if folded}
+						<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={status} />
+					{:else}
+						<!-- A native field on a screen; in a headset a 3D field, typed with the kit's <Keyboard>. -->
+						<Input placeholder="Search the collection" enterkeyhint="search" maxLength={40} width={296} bind:value={draft} onsubmit={(value) => void open(value)} />
+						<ButtonGroup size="compact" kind="secondary" gap={8}>
+							{#each SHOWS as name (name)}
+								<Button label={name} isSelected={query.toLowerCase() === name.toLowerCase()} onclick={() => open(name)} />
+							{/each}
+						</ButtonGroup>
+						{#if loading}
+							<ProgressBar infinite size="small" width={296} />
+						{/if}
+						<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={status} />
+						<Stack direction="row" gap={8} align="center">
+							<Button label="‹" kind="secondary" size="compact" onclick={() => step(-1)} />
+							<Button label="›" kind="secondary" size="compact" onclick={() => step(1)} />
+							<Checkbox type="toggle" label="Tour" bind:checked={tour} disabled={xr.presenting} />
+						</Stack>
+						<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={help} />
 					{/if}
-					<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={status} />
-					<Stack direction="row" gap={8} align="center">
-						<Button label="‹" kind="secondary" size="compact" onclick={() => step(-1)} />
-						<Button label="›" kind="secondary" size="compact" onclick={() => step(1)} />
-						<Checkbox type="toggle" label="Tour" bind:checked={tour} disabled={xr.presenting} />
-					</Stack>
-					<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={help} />
 				</Panel>
 			{/if}
 		</Surface>
@@ -618,7 +632,7 @@
 	<!-- No AR on this device: hand the show to one that has it. The link opens this very work. -->
 	<Modal bind:open={handoff} title="Hang it on your wall" width={340}>
 		<div class="handoff">
-			<Qr text={shareUrl()} />
+			<Qr text={handoffUrl} />
 			<Text align="center" maxWidth={292} color="#CBCBCB" text="Scan with a phone, or open the link in a headset. Then press AR: the work hangs on your wall at its real size." />
 		</div>
 		{#snippet actions()}
