@@ -17,8 +17,10 @@ export type Artwork = {
 	type: string;
 	// The museum's page for the work.
 	url: string;
-	// Same-origin path of the picture.
+	// Same-origin path of the picture, and of its print-size version (up to 3400 px; the
+	// picture again when there is none), for AR Quick Look on an iPhone.
 	image: string;
+	print: string;
 	// Size in meters of the picture as shown: the photo, scaled so what it shows is life size.
 	width: number;
 	height: number;
@@ -103,6 +105,7 @@ export function normalize(raw: any): Artwork | null {
 		type: raw.type ?? '',
 		url: raw.url ?? '',
 		image: imageBase() + web.url.slice(CDN.length),
+		print: imageBase() + (raw.images.print?.url?.startsWith(CDN) ? raw.images.print.url : web.url).slice(CDN.length),
 		width,
 		height,
 		measured: !!box,
