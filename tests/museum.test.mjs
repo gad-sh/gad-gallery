@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalize, pick, searchUrl, sizeLabel } from '../src/museum.ts';
+import { normalize, pick, searchUrl, setBase, sizeLabel } from '../src/museum.ts';
 
 const record = (over = {}) => ({
 	id: 1,
@@ -50,7 +50,7 @@ test('paintings come first, then other flat works, and the show is capped', () =
 
 test('the search asks for open-access works with pictures', () => {
 	const url = new URL(searchUrl('van gogh & co', 42), 'https://salon.example');
-	assert.equal(url.pathname, '/museum/api/artworks/');
+	assert.equal(url.pathname, '/collection/api/artworks/');
 	assert.equal(url.searchParams.get('q'), 'van gogh & co');
 	assert.equal(url.searchParams.get('cc0'), '1');
 	assert.equal(url.searchParams.get('has_image'), '1');
@@ -86,4 +86,18 @@ test('a height alone, and a diameter, size the photo too', () => {
 	assert.equal(dish.width, 0.25);
 	assert.equal(dish.height, 0.25);
 	assert.equal(sizeLabel(dish), '25 cm across');
+});
+
+test('served from a folder, the museum paths are in that folder', () => {
+	try {
+		setBase('/museum/');
+		assert.equal(new URL(searchUrl('monet', 5), 'https://gad.sh').pathname, '/museum/collection/api/artworks/');
+		assert.equal(normalize(record()).image, '/museum/art/1958.39/1958.39_web.jpg');
+		// With or without the closing slash.
+		setBase('/museum');
+		assert.equal(normalize(record()).image, '/museum/art/1958.39/1958.39_web.jpg');
+	} finally {
+		setBase('/');
+	}
+	assert.equal(normalize(record()).image, '/art/1958.39/1958.39_web.jpg');
 });

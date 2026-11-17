@@ -2,8 +2,8 @@
 // It gives each work's real size in meters, which is what lets the gallery, and your wall,
 // show it at true scale. Kept free of the DOM and A-Frame, so it's tested in Node.
 //
-// Both the API and the pictures are reached through this page's own origin (/museum and
-// /art, proxied in vite.config.ts and vercel.json). The picture CDN sends no CORS headers,
+// Both the API and the pictures are reached through this page's own origin (collection/
+// and art/ beside the page, proxied in vite.config.ts and vercel.json). The picture CDN sends no CORS headers,
 // which WebGL textures need. The API does, but its cache keeps whichever response came
 // first for a URL, so after a request without an Origin header (any script) a browser's
 // request for the same search is refused.
@@ -29,9 +29,16 @@ export type Artwork = {
 };
 
 export const MUSEUM = 'The Cleveland Museum of Art';
-export const API_BASE = '/museum';
 const CDN = 'https://openaccess-cdn.clevelandart.org';
-export const IMAGE_BASE = '/art';
+
+// The folder the page is served from: '/' at a site's root, '/museum/' under gad.sh/museum.
+// The museum's two paths sit in it, so the page works wherever it's mounted. main.ts sets it.
+let base = '/';
+export function setBase(path: string) {
+	base = path.endsWith('/') ? path : path + '/';
+}
+const apiBase = () => `${base}collection`;
+const imageBase = () => `${base}art`;
 
 // The museum measures a work part by part: { unframed: { height, width }, framed: … } for a
 // painting, { overall: { length }, blade: { length }, grip: … } for a sword, { overall:
@@ -95,7 +102,7 @@ export function normalize(raw: any): Artwork | null {
 		medium: raw.technique ?? '',
 		type: raw.type ?? '',
 		url: raw.url ?? '',
-		image: IMAGE_BASE + web.url.slice(CDN.length),
+		image: imageBase() + web.url.slice(CDN.length),
 		width,
 		height,
 		measured: !!box,
@@ -113,7 +120,7 @@ export function pick(records: any[], limit: number): Artwork[] {
 
 export function searchUrl(query: string, limit: number): string {
 	const params = new URLSearchParams({ q: query, has_image: '1', cc0: '1', limit: String(limit) });
-	return `${API_BASE}/api/artworks/?${params}`;
+	return `${apiBase()}/api/artworks/?${params}`;
 }
 
 export async function search(query: string, limit = 14, signal?: AbortSignal): Promise<Artwork[]> {
