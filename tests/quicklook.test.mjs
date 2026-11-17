@@ -6,11 +6,11 @@ test('crc32 matches the standard check value', () => {
 	assert.equal(crc32(new TextEncoder().encode('123456789')), 0xcbf43926);
 });
 
-test('the scene is a wall-anchored panel at true size, centered', () => {
+test('the scene is a wall-anchored panel at true size, flat on the wall facing out (+Y), top toward -Z', () => {
 	const scene = usda(0.798, 0.99);
 	assert.match(scene, /preliminary:planeAnchoring:alignment = "vertical"/);
 	assert.match(scene, /metersPerUnit = 1/);
-	assert.match(scene, /\(-0\.399, -0\.495, 0\), \(0\.399, -0\.495, 0\), \(0\.399, 0\.495, 0\), \(-0\.399, 0\.495, 0\)/);
+	assert.match(scene, /\(-0\.399, 0, 0\.495\), \(0\.399, 0, 0\.495\), \(0\.399, 0, -0\.495\), \(-0\.399, 0, -0\.495\)/);
 	assert.match(scene, /@picture\.jpg@/);
 });
 
