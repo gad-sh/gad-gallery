@@ -4,6 +4,7 @@
 	// (teleport). Then press AR and hang the same works on your own wall, at true size.
 	// One page: the panels are HTML on a screen and 3D in a headset (the kit's Surface).
 	import { Button, ButtonGroup, Checkbox, Input, Keyboard, Modal, Panel, ProgressBar, RadialMenu, Scene3D, Stack, Surface, Tag, Text, ThemeProvider, Toaster, createTheme, everyFrame, toaster, xr } from '@xr-kit/ui';
+	import { untrack } from 'svelte';
 	import Door from './Door.svelte';
 	import Hanging from './Hanging.svelte';
 	import Qr from './Qr.svelte';
@@ -161,6 +162,11 @@
 		const x = hang.x - Math.sign(hang.x) * distance;
 		moveCamera({ x, z: hang.view.z, yaw: (hang.view.yaw * Math.PI) / 180, pitch: Math.atan2(hang.y - eye, distance) - (narrow ? 0.13 : 0) });
 	}
+	// Closing the work you're looking at ends the tour, or it would only open the next one.
+	function closeDetail() {
+		tour = false;
+		select(null);
+	}
 	function step(by: number) {
 		if (loading) return;
 		// Off the end of the tour: on into the next hall (or back to the last work of the one
@@ -176,9 +182,11 @@
 	}
 
 	// A tour walks from work to work by itself (on a screen: a headset is never moved for you).
+	// Only `tour` and `xr.presenting` start or stop it: step() reads and writes `selected`,
+	// which tracked here would rerun this effect for ever (and freeze the page).
 	$effect(() => {
 		if (!tour || xr.presenting) return;
-		step(1);
+		untrack(() => step(1));
 		const timer = setInterval(() => step(1), 6500);
 		return () => clearInterval(timer);
 	});
@@ -434,7 +442,7 @@
 		if (event.key === 'ArrowRight') step(1);
 		if (event.key === 'ArrowLeft') step(-1);
 		if (event.repeat) return;
-		if (event.key === 'Escape') select(null);
+		if (event.key === 'Escape') closeDetail();
 		if (event.key === 'v' || event.key === 'V') xr.simulated = !xr.simulated;
 	}
 </script>
@@ -565,7 +573,10 @@
 			{:else}
 				<Panel title="Salon" width={328} padding={16} gap={12}>
 					{#snippet action()}
-						<Button label={folded ? '+' : '−'} kind="tertiary" size="mini" shape="round" aria-label={folded ? 'Show search' : 'Hide search'} aria-expanded={!folded} onclick={() => (folded = !folded)} />
+						<!-- A caret on a screen: down to open the panel, up to fold it. The 3D button shows its label. -->
+						<Button label={folded ? '+' : '−'} kind="tertiary" size="mini" shape="round" aria-label={folded ? 'Show search' : 'Hide search'} aria-expanded={!folded} onclick={() => (folded = !folded)}>
+							<svg class="caret" class:up={!folded} viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+						</Button>
 					{/snippet}
 					{#if folded}
 						<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={status} />
@@ -597,7 +608,7 @@
 			{#if detail}
 				<Panel title={short(detail.title, 26)} width={300} padding={16} gap={10}>
 					{#snippet action()}
-						<Button label="×" kind="tertiary" size="mini" shape="round" onclick={() => select(null)} />
+						<Button label="×" kind="tertiary" size="mini" shape="round" aria-label="Close" onclick={closeDetail} />
 					{/snippet}
 					<Text variant="LabelMedium" align="left" maxWidth={268} text={[detail.artist, detail.date].filter(Boolean).join(', ')} />
 					<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={268} text={detail.medium || detail.type} />
@@ -643,6 +654,13 @@
 </ThemeProvider>
 
 <style>
+	.caret {
+		display: block;
+		transition: transform 0.2s ease;
+	}
+	.caret.up {
+		transform: rotate(180deg);
+	}
 	.handoff {
 		display: flex;
 		flex-direction: column;
