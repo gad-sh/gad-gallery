@@ -15,8 +15,8 @@ importers:
         specifier: ^0.1.0
         version: 0.1.0(aframe@1.8.0(supports-color@10.2.2))
       '@xr-kit/ui':
-        specifier: ^0.1.0
-        version: 0.1.0(aframe@1.8.0(supports-color@10.2.2))(svelte@5.57.3)
+        specifier: ^0.2.0
+        version: 0.2.0(aframe@1.8.0(supports-color@10.2.2))(svelte@5.57.3)
       aframe:
         specifier: ^1.8.0
         version: 1.8.0(supports-color@10.2.2)
@@ -228,8 +228,8 @@ packages:
     peerDependencies:
       aframe: ^1.8.0
 
-  '@xr-kit/ui@0.1.0':
-    resolution: {integrity: sha512-vuhvuxvn/Z47JN8Zukc0M7hZGQhv1eBH+NscIeZqVbsWMlBDvwPuebSGH6snoE8LIe9PvjzchDkzQR7FwFfshg==}
+  '@xr-kit/ui@0.2.0':
+    resolution: {integrity: sha512-2/dbPlQq3IexHtGDXPZqhrsf1GsEwdZy7WCyG6/Qxj6+MKiPylrKOqVFRx+UmnkFLJSrX0bTzSvdXB4g8nqO6Q==}
     peerDependencies:
       aframe: ^1.8.0
       svelte: ^5.0.0
@@ -801,7 +801,7 @@ snapshots:
     dependencies:
       aframe: 1.8.0(supports-color@10.2.2)
 
-  '@xr-kit/ui@0.1.0(aframe@1.8.0(supports-color@10.2.2))(svelte@5.57.3)':
+  '@xr-kit/ui@0.2.0(aframe@1.8.0(supports-color@10.2.2))(svelte@5.57.3)':
     dependencies:
       aframe: 1.8.0(supports-color@10.2.2)
       svelte: 5.57.3
