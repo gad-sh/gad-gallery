@@ -571,13 +571,18 @@
 					<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text="Hold the trigger on a wall and release to hang it there" />
 				</Panel>
 			{:else}
-				<Panel title="Salon" width={328} padding={16} gap={12}>
-					{#snippet action()}
-						<!-- A caret on a screen: down to open the panel, up to fold it. The 3D button shows its label. -->
-						<Button label={folded ? '+' : '−'} kind="tertiary" size="mini" shape="round" aria-label={folded ? 'Show search' : 'Hide search'} aria-expanded={!folded} onclick={() => (folded = !folded)}>
-							<svg class="caret" class:up={!folded} viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
-						</Button>
-					{/snippet}
+				<!-- In a headset: the panel's own title, and a +/− button beside it. On a screen the
+				     whole title bar is an accordion header: tap anywhere on it, a caret shows which way. -->
+				{#snippet foldButton()}
+					<Button label={folded ? '+' : '−'} kind="tertiary" size="mini" shape="round" aria-label={folded ? 'Show search' : 'Hide search'} onclick={() => (folded = !folded)} />
+				{/snippet}
+				<Panel title={xr.immersive ? 'Salon' : undefined} action={xr.immersive ? foldButton : undefined} width={328} padding={16} gap={12}>
+					{#if !xr.immersive}
+						<button class="fold" type="button" aria-expanded={!folded} onclick={() => (folded = !folded)}>
+							<Text variant="HeadingSmall" text="Salon" />
+							<svg class="caret" class:up={!folded} viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+						</button>
+					{/if}
 					{#if folded}
 						<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={status} />
 					{:else}
@@ -654,8 +659,34 @@
 </ThemeProvider>
 
 <style>
+	/* The Salon title bar as an accordion header: the panel's whole top edge, no button look. */
+	.fold {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		align-self: stretch;
+		/* Out to the panel's edges, so the tap target is the full bar. */
+		margin: -16px -16px 0;
+		padding: 16px 16px 0;
+		border: 0;
+		border-radius: 24px 24px 0 0;
+		background: none;
+		color: #cbcbcb;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+	.fold:hover {
+		color: #fff;
+	}
+	.fold:focus-visible {
+		outline: 2px solid #8d93a0;
+		outline-offset: -2px;
+	}
 	.caret {
 		display: block;
+		flex: none;
 		transition: transform 0.2s ease;
 	}
 	.caret.up {
