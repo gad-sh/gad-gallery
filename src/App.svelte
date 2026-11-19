@@ -423,8 +423,9 @@
 	// ——— Screen layout and keys.
 	let innerWidth = $state(1024);
 	const narrow = $derived(innerWidth < 720);
-	// The Salon panel folds to its title bar; on a phone it starts folded, out of the view.
-	let folded = $state(window.innerWidth < 720);
+	// The Salon panel folds to its title bar (the kit's collapsible Panel); on a phone it
+	// starts folded, out of the view.
+	let unfolded = $state(window.innerWidth >= 720);
 	const short = (text: string, max: number) => (text.length > max ? text.slice(0, max - 1).trimEnd() + '…' : text);
 	const status = $derived(loading ? 'Asking the museum…' : works.length ? `${halls > 1 ? `Hall ${hall} of ${halls} · ` : ''}${works.length} works · ${MUSEUM} · CC0` : ' ');
 	const help = $derived(
@@ -571,34 +572,28 @@
 					<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text="Hold the trigger on a wall and release to hang it there" />
 				</Panel>
 			{:else}
-				<Panel title="Salon" width={328} padding={16} gap={12}>
-					{#snippet action()}
-						<!-- A caret on a screen: down to open the panel, up to fold it. The 3D button shows its label. -->
-						<Button label={folded ? '+' : '−'} kind="tertiary" size="mini" shape="round" aria-label={folded ? 'Show search' : 'Hide search'} aria-expanded={!folded} onclick={() => (folded = !folded)}>
-							<svg class="caret" class:up={!folded} viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
-						</Button>
+				<!-- The whole title bar folds it, on a screen and in a headset. Folded, just the status. -->
+				<Panel title="Salon" collapsible bind:open={unfolded} width={328} padding={16} gap={12}>
+					{#snippet summary()}
+						<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={status} />
 					{/snippet}
-					{#if folded}
-						<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={status} />
-					{:else}
-						<!-- A native field on a screen; in a headset a 3D field, typed with the kit's <Keyboard>. -->
-						<Input placeholder="Search the collection" enterkeyhint="search" maxLength={40} width={296} bind:value={draft} onsubmit={(value) => void open(value)} />
-						<ButtonGroup size="compact" kind="secondary" gap={8}>
-							{#each SHOWS as name (name)}
-								<Button label={name} isSelected={query.toLowerCase() === name.toLowerCase()} onclick={() => open(name)} />
-							{/each}
-						</ButtonGroup>
-						{#if loading}
-							<ProgressBar infinite size="small" width={296} />
-						{/if}
-						<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={status} />
-						<Stack direction="row" gap={8} align="center">
-							<Button label="‹" kind="secondary" size="compact" onclick={() => step(-1)} />
-							<Button label="›" kind="secondary" size="compact" onclick={() => step(1)} />
-							<Checkbox type="toggle" label="Tour" bind:checked={tour} disabled={xr.presenting} />
-						</Stack>
-						<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={help} />
+					<!-- A native field on a screen; in a headset a 3D field, typed with the kit's <Keyboard>. -->
+					<Input placeholder="Search the collection" enterkeyhint="search" maxLength={40} width={296} bind:value={draft} onsubmit={(value) => void open(value)} />
+					<ButtonGroup size="compact" kind="secondary" gap={8}>
+						{#each SHOWS as name (name)}
+							<Button label={name} isSelected={query.toLowerCase() === name.toLowerCase()} onclick={() => open(name)} />
+						{/each}
+					</ButtonGroup>
+					{#if loading}
+						<ProgressBar infinite size="small" width={296} />
 					{/if}
+					<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={status} />
+					<Stack direction="row" gap={8} align="center">
+						<Button label="‹" kind="secondary" size="compact" onclick={() => step(-1)} />
+						<Button label="›" kind="secondary" size="compact" onclick={() => step(1)} />
+						<Checkbox type="toggle" label="Tour" bind:checked={tour} disabled={xr.presenting} />
+					</Stack>
+					<Text variant="LabelSmall" align="left" color="#8d93a0" maxWidth={260} text={help} />
 				</Panel>
 			{/if}
 		</Surface>
@@ -654,13 +649,6 @@
 </ThemeProvider>
 
 <style>
-	.caret {
-		display: block;
-		transition: transform 0.2s ease;
-	}
-	.caret.up {
-		transform: rotate(180deg);
-	}
 	.handoff {
 		display: flex;
 		flex-direction: column;
