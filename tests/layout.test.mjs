@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ROOM, layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, DOOR, nextDoor, surfaceNormal, throughDoor, tourLeaves, tourOrder, tourStep, turn, viewDistance } from '../src/layout.ts';
+import { ROOM, layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, DOOR, keepInside, nextDoor, surfaceNormal, throughDoor, tourLeaves, tourOrder, tourStep, turn, viewDistance } from '../src/layout.ts';
 
 const near = (a, b, eps = 1e-6) => assert.ok(Math.abs(a - b) < eps, `${a} ≈ ${b}`);
 
@@ -168,4 +168,21 @@ test('the tour runs off its ends into the next and previous halls', () => {
 	// Not on the tour yet: it starts in this hall.
 	assert.equal(tourLeaves(5, null, 1), 0);
 	assert.equal(tourLeaves(0, null, 1), 0);
+});
+
+test('keepInside holds you off the walls, but not out of a door', () => {
+	const room = layoutGallery([{ width: 1, height: 1 }]);
+	assert.deepEqual(keepInside(room, 0, 0), { x: 0, z: 0 });
+	const out = keepInside(room, 50, -500, 0.3);
+	near(out.x, room.width / 2 - 0.3);
+	near(out.z, -room.length + 0.3);
+	const back = keepInside(room, -50, 500, 0.3);
+	near(back.x, -room.width / 2 + 0.3);
+	near(back.z, room.back - 0.3);
+	// As far as you can walk towards each door is still through it.
+	const next = nextDoor(room);
+	const atNext = keepInside(room, 50, next.z);
+	assert.equal(throughDoor(room, atNext.x, atNext.z, { next: true, previous: true }), 1);
+	const atBack = keepInside(room, 0, 500);
+	assert.equal(throughDoor(room, atBack.x, atBack.z, { next: true, previous: true }), -1);
 });

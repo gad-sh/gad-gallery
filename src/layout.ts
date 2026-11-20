@@ -187,6 +187,14 @@ export function throughDoor(room: Pick<Room, 'width' | 'length' | 'back'>, x: nu
 	return 0;
 }
 
+// The nearest spot to (x, z) that's still inside the hall, `margin` from every wall, for the
+// keyboard's free walking on a screen (tapping and teleporting only ever land on the floor).
+// The doors' `reach` is deeper than the margin, so walking into one still goes through.
+export function keepInside(room: Pick<Room, 'width' | 'length' | 'back'>, x: number, z: number, margin = 0.3): { x: number; z: number } {
+	const side = room.width / 2 - margin;
+	return { x: Math.min(side, Math.max(-side, x)), z: Math.min(room.back - margin, Math.max(-room.length + margin, z)) };
+}
+
 // Whether a step of `by` from `from` runs off the end of the tour (1) or its start (-1),
 // where it carries on into the next or previous hall instead of wrapping round. 0 otherwise.
 export function tourLeaves(count: number, from: number | null, by: number): 1 | -1 | 0 {

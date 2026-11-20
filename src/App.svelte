@@ -9,7 +9,7 @@
 	import Hanging from './Hanging.svelte';
 	import Qr from './Qr.svelte';
 	import { quickLook, quickLookSupported } from './quicklook';
-	import { layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, nextDoor, throughDoor, tourLeaves, tourStep, turn, type Placement } from './layout';
+	import { layoutGallery, placeAhead, placeOnSurface, screenDistance, sizeNote, keepInside, nextDoor, throughDoor, tourLeaves, tourStep, turn, type Placement } from './layout';
 	import { MUSEUM, artwork, search, sizeLabel, type Artwork, type Hall } from './museum';
 
 	/* eslint-disable @typescript-eslint/no-explicit-any */
@@ -237,6 +237,7 @@
 		return everyFrame(scene, () => {
 			stepFade();
 			watchDoors();
+			keepOnFloor();
 			if (!glide) return;
 			const t = Math.min(1, (performance.now() - glide.start) / glide.duration);
 			const k = t * t * (3 - 2 * t);
@@ -293,6 +294,17 @@
 		const way = throughDoor(room, at.x, at.z, { next: hall < halls, previous: hall > 1 });
 		if (way && way !== lastDoor && !loading) goHall(way, { arrive: way > 0 ? 'start' : 'end' });
 		lastDoor = way;
+	}
+	// The keyboard (wasd-controls) walks the camera anywhere: keep it inside the hall's walls.
+	// A headset is never pushed: its rig only moves by teleporting on to the floor.
+	const inside = new THREE.Vector3();
+	function keepOnFloor() {
+		if (ar || xr.presenting || !works.length || !camera) return;
+		camera.object3D.getWorldPosition(inside);
+		const to = keepInside(room, inside.x, inside.z);
+		if (to.x === inside.x && to.z === inside.z) return;
+		rig.object3D.position.x += to.x - inside.x;
+		rig.object3D.position.z += to.z - inside.z;
 	}
 	// Walking off yourself (tapping the floor, dragging the view) ends a glide, and the tour.
 	const takeOver = () => {
